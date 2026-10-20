@@ -1,0 +1,52 @@
+# Python Bytecode & Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Environment Variables & Secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Preserve tracked empty directory structure
+!.gitkeep
+
+# Data and Dataset Directories (Raw and Processed)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Large Serialized Models (reproduced via src/train_svm.py)
+models/*.pkl
+!models/.gitkeep
+
+# Weight & Checkpoint Formats
+*.zip
+*.tar.gz
+*.pth
+*.pt
+*.onnx
+
+# Notebook Checkpoints & IDE Metadata
+.ipynb_checkpoints/
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs, Scratch & Temporary Files
+*.log
+scratch/

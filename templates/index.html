@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fruit Recognition AI | ResNet50 Deep Features + SVM</title>
+    <!-- Modern Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <!-- Background Ambient Glow (Strictly Emerald, Sage & Solar Amber - No Purple/Blue) -->
+    <div class="ambient-glow glow-top-left"></div>
+    <div class="ambient-glow glow-top-right"></div>
+    <div class="ambient-glow glow-bottom-center"></div>
+
+    <div class="app-container">
+        <!-- Brand & Hero Navigation -->
+        <header class="hero-brand">
+            <div class="brand-left">
+                <div class="logo-mark">
+                    <span class="logo-icon">🌿</span>
+                </div>
+                <div class="brand-titles">
+                    <h1>FRUIT<span class="brand-highlight">VISION</span> AI</h1>
+                    <p class="brand-sub">Multi-Class Fruit Recognition via Deep Feature Transfer (ResNet-50 GAP) &amp;
+                        Support Vector Machine</p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs (Only Classifier Demo & Evaluation & Matrix) -->
+            <nav class="nav-tabs" role="tablist">
+                <button class="nav-tab active" id="tabBtnClassifier" onclick="switchTab('classifier')">
+                    <span class="tab-icon">⚡</span> Classifier Demo
+                </button>
+                <button class="nav-tab" id="tabBtnEvaluation" onclick="switchTab('evaluation')">
+                    <span class="tab-icon">📊</span> Evaluation &amp; Matrix
+                </button>
+            </nav>
+        </header>
+
+        <!-- ==================== TAB 1: CLASSIFIER DEMO ==================== -->
+        <main class="tab-content active" id="tabClassifier">
+
+            <!-- Quick-Demo Fruit Palette Bar -->
+            <section class="quick-demo-section">
+                <div class="quick-demo-header">
+                    <span class="quick-demo-title">⚡ Instant Quick Test (1-Click Test Set Samples):</span>
+                    <span class="quick-demo-hint">Click any fruit below to test the model pipeline instantly</span>
+                </div>
+                <div class="fruit-chips-grid" id="fruitChipsGrid">
+                    <!-- Populated dynamically by JS with 10 fruit buttons -->
+                    <div class="fruit-chip-skeleton">Loading fruits catalog...</div>
+                </div>
+            </section>
+
+            <!-- Main Work Area: Input & Analysis Grid -->
+            <div class="main-grid">
+
+                <!-- Left Column: Optimized Image Input & Upload Card -->
+                <div class="input-card">
+                    <div class="card-header">
+                        <h3><span class="card-icon">📷</span> Image Acquisition</h3>
+                    </div>
+
+                    <!-- Drop Zone -->
+                    <div class="drop-zone" id="dropZone">
+                        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp"
+                            style="display: none;">
+
+                        <div class="drop-content" id="dropPrompt">
+                            <div class="drop-icon-bubble">
+                                <span>📥</span>
+                            </div>
+                            <h4>Drag &amp; Drop Fruit Image</h4>
+                            <p class="drop-sub">or browse from your device</p>
+
+                            <div class="upload-btn-row">
+                                <button type="button" class="btn btn-primary"
+                                    onclick="document.getElementById('fileInput').click()">
+                                    Browse Image
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="openWebcamModal()">
+                                    📸 Webcam
+                                </button>
+                            </div>
+                            <span class="file-types-hint">Supports JPEG, PNG, WebP (Max 16MB)</span>
+                        </div>
+
+                        <!-- Image Preview Frame (hidden by default) -->
+                        <div class="preview-container" id="previewContainer" style="display: none;">
+                            <img id="imagePreview" alt="Input Preview" class="preview-img">
+                            <div class="preview-overlay">
+                                <button class="btn btn-sm btn-glass" onclick="resetImage()">Change Image</button>
+                                <button class="btn btn-sm btn-primary" id="reanalyzeBtn"
+                                    onclick="runPredictionOnCurrent()">Re-analyze</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Optimized Pipeline Mini Indicator -->
+                    <div class="pipeline-steps-card">
+                        <div class="pipeline-step-item">
+                            <span class="step-num">01</span>
+                            <div class="step-info">
+                                <strong>Preprocessing</strong>
+                                <small>Resize 224 &amp; Normalize</small>
+                            </div>
+                        </div>
+                        <div class="pipeline-step-arrow">&rarr;</div>
+                        <div class="pipeline-step-item">
+                            <span class="step-num">02</span>
+                            <div class="step-info">
+                                <strong>ResNet50 GAP</strong>
+                                <small>2,048-D Embedding</small>
+                            </div>
+                        </div>
+                        <div class="pipeline-step-arrow">&rarr;</div>
+                        <div class="pipeline-step-item">
+                            <span class="step-num">03</span>
+                            <div class="step-info">
+                                <strong>StandardScaler</strong>
+                                <small>Zero Mean, Unit Var</small>
+                            </div>
+                        </div>
+                        <div class="pipeline-step-arrow">&rarr;</div>
+                        <div class="pipeline-step-item">
+                            <span class="step-num">04</span>
+                            <div class="step-info">
+                                <strong>Linear SVM</strong>
+                                <small>45 Pairwise Voting</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Results & Analytics Output -->
+                <div class="output-card" id="outputCard">
+
+                    <!-- Clean Minimal Empty State (Requested text removed) -->
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-icon-wrap">
+                            <span class="empty-icon">🍎</span>
+                        </div>
+                        <h3>Awaiting Fruit Image Input</h3>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div class="loading-state" id="loadingState" style="display: none;">
+                        <div class="spinner-ring"></div>
+                        <h4>Extracting Deep Features &amp; Evaluating SVM...</h4>
+                        <p class="loading-sub">Passing tensor through ResNet-50 GAP layer &bull; Evaluating 45 pairwise
+                            decision boundaries</p>
+                    </div>
+
+                    <!-- Active Result State -->
+                    <div class="result-state" id="resultState" style="display: none;">
+
+                        <!-- Primary Fruit Hero Banner -->
+                        <div class="hero-result-banner" id="heroBanner">
+                            <div class="hero-left">
+                                <div class="fruit-avatar-wrapper" id="fruitAvatarWrap">
+                                    <span class="fruit-hero-emoji" id="fruitEmoji">🍎</span>
+                                </div>
+                                <div class="fruit-hero-text">
+                                    <div class="fruit-tag-row">
+                                        <span class="badge badge-success" id="predBadge">CLASSIFIED WITH HIGH
+                                            CONFIDENCE</span>
+                                        <span class="badge badge-subtle" id="votesBadge">9/9 Hyperplane Votes</span>
+                                    </div>
+                                    <h2 class="fruit-hero-name" id="fruitName">Apple</h2>
+                                    <p class="fruit-binomial" id="fruitBinomial"><em>Malus domestica</em> &bull; Family
+                                        Rosaceae</p>
+                                </div>
+                            </div>
+                            <div class="hero-right">
+                                <div class="confidence-gauge">
+                                    <span class="conf-pct" id="confPct">98.4%</span>
+                                    <span class="conf-lbl">Confidence</span>
+                                </div>
+                                <div class="latency-badge" id="latencyBadge">
+                                    <span>⚡ 48.2ms total</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prediction Diagnostics Grid -->
+                        <div class="result-details-grid">
+
+                            <!-- Top Predictions Ranking -->
+                            <div class="detail-box">
+                                <div class="detail-box-header">
+                                    <h4><span class="box-icon">📊</span> Category Probabilities (Top-5)</h4>
+                                    <small class="muted-note">Calibrated Softmax</small>
+                                </div>
+                                <div class="prob-bars-list" id="probBarsList">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+
+                            <!-- Deep Feature Vector Analytics (2048-D) -->
+                            <div class="detail-box">
+                                <div class="detail-box-header">
+                                    <h4><span class="box-icon">🧠</span> ResNet50 GAP Vector (2,048-D)</h4>
+                                    <button class="btn btn-xs btn-outline" onclick="toggleRawVectorModal()">Inspect
+                                        Tensor</button>
+                                </div>
+
+                                <div class="embedding-canvas-container">
+                                    <canvas id="vectorCanvas" height="75"></canvas>
+                                    <div class="canvas-legend">
+                                        <span>Sample of 64 Penultimate Activations</span>
+                                        <span id="canvasPeak">Peak: 0.00</span>
+                                    </div>
+                                </div>
+
+                                <div class="feature-metrics-grid">
+                                    <div class="feat-metric">
+                                        <span class="fm-label">Feature Dim</span>
+                                        <strong class="fm-value">2,048</strong>
+                                    </div>
+                                    <div class="feat-metric">
+                                        <span class="fm-label">L2 Norm &Vert;x&Vert;</span>
+                                        <strong class="fm-value" id="valL2Norm">14.28</strong>
+                                    </div>
+                                    <div class="feat-metric">
+                                        <span class="fm-label">Mean Activation</span>
+                                        <strong class="fm-value" id="valMeanAct">0.241</strong>
+                                    </div>
+                                    <div class="feat-metric">
+                                        <span class="fm-label">Zero Sparsity</span>
+                                        <strong class="fm-value" id="valSparsity">18.4%</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Pairwise SVM Voting Breakdown -->
+                        <div class="detail-box voting-box">
+                            <div class="detail-box-header">
+                                <h4><span class="box-icon">⚔️</span> Pairwise 1-vs-1 SVM Hyperplane Breakdown</h4>
+                                <small class="muted-note">45 Binary Classifiers Contest Results</small>
+                            </div>
+                            <div class="pairwise-chips-scroll" id="pairwiseChips">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Fruit Nutritional Profile -->
+                        <div class="detail-box nutrition-box" id="nutritionBox">
+                            <div class="detail-box-header">
+                                <h4><span class="box-icon">🥗</span> Fruit Nutritional Profile (Per 100g)</h4>
+                                <span class="tag-dietary">Nutritional Data Source: USDA FoodData</span>
+                            </div>
+                            <div class="nutrition-stats-row">
+                                <div class="nutri-stat">
+                                    <span class="nutri-val" id="nutriCalories">52</span>
+                                    <span class="nutri-lbl">Calories (kcal)</span>
+                                </div>
+                                <div class="nutri-stat">
+                                    <span class="nutri-val" id="nutriFiber">2.4g</span>
+                                    <span class="nutri-lbl">Dietary Fiber</span>
+                                </div>
+                                <div class="nutri-stat">
+                                    <span class="nutri-val" id="nutriSugar">10.3g</span>
+                                    <span class="nutri-lbl">Natural Sugar</span>
+                                </div>
+                                <div class="nutri-stat">
+                                    <span class="nutri-val" id="nutriVitC">4.6mg</span>
+                                    <span class="nutri-lbl">Vitamin C</span>
+                                </div>
+                                <div class="nutri-stat">
+                                    <span class="nutri-val" id="nutriPotassium">107mg</span>
+                                    <span class="nutri-lbl">Potassium</span>
+                                </div>
+                            </div>
+                            <div class="fruit-perks-row" id="fruitPerks">
+                                <!-- Populated by JS -->
+                            </div>
+                            <div class="fun-fact-bubble" id="funFact">
+                                <span class="ff-icon">💡</span>
+                                <span class="ff-text" id="funFactText">Loading botanical fact...</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </main>
+
+        <!-- ==================== TAB 2: EVALUATION & CONFUSION MATRIX ==================== -->
+        <section class="tab-content" id="tabEvaluation">
+            <div class="info-page-card">
+                <div class="section-title-wrap">
+                    <h2>Experimental Evaluation &amp; Benchmark Results</h2>
+                    <p class="section-desc">Performance analysis evaluated on 499 test images across 10 fruit categories
+                        from the Fruit Classification dataset.</p>
+                </div>
+
+                <!-- KPI Metric Highlights -->
+                <div class="kpi-strip">
+                    <div class="kpi-card">
+                        <span class="kpi-val highlight-emerald">93.79%</span>
+                        <span class="kpi-lbl">Overall Test Accuracy</span>
+                        <small>468 / 499 Images Correctly Classified</small>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-val highlight-amber">0.9407</span>
+                        <span class="kpi-lbl">Macro Precision</span>
+                        <small>Average per-class positive predictive value</small>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-val highlight-emerald">0.9381</span>
+                        <span class="kpi-lbl">Macro Recall</span>
+                        <small>Average per-class sensitivity across classes</small>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-val highlight-amber">0.9387</span>
+                        <span class="kpi-lbl">Macro F1-Score</span>
+                        <small>Harmonic mean of precision &amp; recall</small>
+                    </div>
+                </div>
+
+                <!-- Confusion Matrix & Backbone Comparison -->
+                <div class="eval-grid">
+
+                    <!-- Confusion Matrix Image Card -->
+                    <div class="eval-card">
+                        <div class="card-header">
+                            <h3>Confusion Matrix (10 Classes)</h3>
+                            <a href="/results/confusion_matrix.png" target="_blank" class="btn btn-xs btn-outline">Full
+                                Image &nearr;</a>
+                        </div>
+                        <div class="cm-img-wrap">
+                            <img src="/results/confusion_matrix.png" alt="Confusion Matrix" class="confusion-matrix-img"
+                                onerror="this.src='/static/img/placeholder_cm.png'">
+                        </div>
+                        <p class="cm-caption">Matrix highlights strong diagonal purity across classes, with Banana (100%
+                            precision), Pineapple (100% precision), and Strawberry (100% recall) exhibiting perfect
+                            category isolation.</p>
+                    </div>
+
+                    <!-- Per-Class Performance Table -->
+                    <div class="eval-card">
+                        <div class="card-header">
+                            <h3>Per-Class Classification Report</h3>
+                            <span class="card-badge">Test Set: N = 499</span>
+                        </div>
+                        <table class="report-table">
+                            <thead>
+                                <tr>
+                                    <th>Fruit Class</th>
+                                    <th>Precision</th>
+                                    <th>Recall</th>
+                                    <th>F1-Score</th>
+                                    <th>Support</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>🍎 Apple</td>
+                                    <td>0.9388</td>
+                                    <td>0.9583</td>
+                                    <td>0.9485</td>
+                                    <td>48</td>
+                                </tr>
+                                <tr>
+                                    <td>🥑 Avocado</td>
+                                    <td>0.9787</td>
+                                    <td>0.9020</td>
+                                    <td>0.9388</td>
+                                    <td>51</td>
+                                </tr>
+                                <tr>
+                                    <td>🍌 Banana</td>
+                                    <td><strong>1.0000</strong></td>
+                                    <td>0.9400</td>
+                                    <td>0.9691</td>
+                                    <td>50</td>
+                                </tr>
+                                <tr>
+                                    <td>🍒 Cherry</td>
+                                    <td>0.9400</td>
+                                    <td>0.9400</td>
+                                    <td>0.9400</td>
+                                    <td>50</td>
+                                </tr>
+                                <tr>
+                                    <td>🥝 Kiwi</td>
+                                    <td>0.8980</td>
+                                    <td>0.8800</td>
+                                    <td>0.8889</td>
+                                    <td>50</td>
+                                </tr>
+                                <tr>
+                                    <td>🥭 Mango</td>
+                                    <td>0.8070</td>
+                                    <td>0.9020</td>
+                                    <td>0.8519</td>
+                                    <td>51</td>
+                                </tr>
+                                <tr>
+                                    <td>🍊 Orange</td>
+                                    <td>0.9216</td>
+                                    <td>0.9592</td>
+                                    <td>0.9400</td>
+                                    <td>49</td>
+                                </tr>
+                                <tr>
+                                    <td>🍍 Pineapple</td>
+                                    <td><strong>1.0000</strong></td>
+                                    <td>0.9600</td>
+                                    <td><strong>0.9796</strong></td>
+                                    <td>50</td>
+                                </tr>
+                                <tr>
+                                    <td>🍓 Strawberry</td>
+                                    <td>0.9434</td>
+                                    <td><strong>1.0000</strong></td>
+                                    <td>0.9709</td>
+                                    <td>50</td>
+                                </tr>
+                                <tr>
+                                    <td>🍉 Watermelon</td>
+                                    <td>0.9792</td>
+                                    <td>0.9400</td>
+                                    <td>0.9592</td>
+                                    <td>50</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th>Overall Accuracy</th>
+                                    <th colspan="3" style="text-align: center;">93.79%</th>
+                                    <th>499</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                </div>
+
+                <!-- Backbone & Kernel Ablation Study -->
+                <div class="ablation-section">
+                    <div class="card-header">
+                        <h3>Ablation Study: CNN Backbone &amp; SVM Kernel Comparison</h3>
+                        <span class="card-badge">5-Fold Cross Validation</span>
+                    </div>
+                    <table class="ablation-table">
+                        <thead>
+                            <tr>
+                                <th>Backbone</th>
+                                <th>Feature Dimension</th>
+                                <th>SVM Kernel</th>
+                                <th>Regularization (C)</th>
+                                <th>Test Accuracy</th>
+                                <th>Macro F1</th>
+                                <th>Inference Speed</th>
+                                <th>Selection Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="selected-row">
+                                <td><strong>ResNet-50</strong></td>
+                                <td>2,048</td>
+                                <td><span class="kernel-pill">Linear</span></td>
+                                <td>C = 0.01</td>
+                                <td><strong>93.79%</strong></td>
+                                <td><strong>0.9387</strong></td>
+                                <td>Fast (~45ms)</td>
+                                <td><span class="badge badge-success">Selected System</span></td>
+                            </tr>
+                            <tr>
+                                <td>ResNet-50</td>
+                                <td>2,048</td>
+                                <td><span class="kernel-pill">RBF</span></td>
+                                <td>C = 1.0, &gamma; = scale</td>
+                                <td>87.98%</td>
+                                <td>0.8883</td>
+                                <td>Moderate (~65ms)</td>
+                                <td><span class="badge badge-subtle">Ablation Baseline</span></td>
+                            </tr>
+                            <tr>
+                                <td>MobileNet-V2</td>
+                                <td>1,280</td>
+                                <td><span class="kernel-pill">Linear</span></td>
+                                <td>C = 1.0</td>
+                                <td>94.79%</td>
+                                <td>0.9482</td>
+                                <td>Fast (~35ms)</td>
+                                <td><span class="badge badge-subtle">Lightweight Alt</span></td>
+                            </tr>
+                            <tr>
+                                <td>MobileNet-V2</td>
+                                <td>1,280</td>
+                                <td><span class="kernel-pill">RBF</span></td>
+                                <td>C = 1.0, &gamma; = scale</td>
+                                <td>91.58%</td>
+                                <td>0.9189</td>
+                                <td>Moderate (~50ms)</td>
+                                <td><span class="badge badge-subtle">Ablation Baseline</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-content">
+                <p class="footer-desc">
+                    <strong class="footer-brand">FruitVision AI:</strong> An intelligent visual recognition system
+                    utilizing deep transfer feature representations (ResNet-50 GAP 2,048-D) paired with a high-margin
+                    Linear Support Vector Machine (SVM). Standardized deep visual embeddings are evaluated across 45
+                    pairwise hyperplanes to deliver real-time, calibrated fruit classification and multi-metric
+                    performance insights.
+                </p>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- Webcam Capture Modal -->
+    <div class="modal-backdrop" id="webcamModal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Live Fruit Camera Feed</h3>
+                <button class="modal-close-btn" onclick="closeWebcamModal()">&times;</button>
+            </div>
+            <div class="webcam-viewport">
+                <video id="webcamVideo" autoplay playsinline></video>
+                <canvas id="webcamCanvas" style="display: none;"></canvas>
+                <div class="camera-target-box"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeWebcamModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="captureWebcamSnapshot()">📸 Capture &amp; Classify</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Raw Embedding Tensor Modal -->
+    <div class="modal-backdrop" id="tensorModal" style="display: none;">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3>ResNet50 Penultimate Embedding Tensor (2,048-D)</h3>
+                <button class="modal-close-btn" onclick="toggleRawVectorModal()">&times;</button>
+            </div>
+            <div class="tensor-modal-body">
+                <p class="tensor-info-note">The penultimate layer (Global Average Pooling) produces a continuous
+                    2,048-dimensional floating point representation. Below is a 64-point subsampled slice:</p>
+                <div class="tensor-code-view" id="tensorCodeView">
+                    <code>Loading tensor values...</code>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="copyTensorValues()">📋 Copy Array</button>
+                <button class="btn btn-primary" onclick="toggleRawVectorModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>
